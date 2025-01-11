@@ -52,7 +52,7 @@ var MOR = function (t) {
 
 //}
 
-/** Mineshaft button **/
+/** Shaft button **/
 // {
 
 var ShaftButton = function (x, y, w, h, txt, func) {
@@ -167,12 +167,10 @@ var Shaft = function (y, w, h, shaftId, increment, upgradeInc) {
     this.increment = increment;
     this.upgradeInc = upgradeInc;
     this.level = 1;
-    this.built = true;
+    this.built = false;
     this.crateM = 0;
     this.buildPrice = this.id * this.increment;
-    this.buildButton = new ShaftButton(this.x + this.w / 3, this.y + this.h / 4, this.w / 4, this.h / 2, "Build:" + this.buildPrice, function() {
-        this.built = true;
-    });
+    this.buildButton = new ShaftButton(this.x + this.w / 3, this.y + this.h / 4, this.w / 4, this.h / 2, "Build:" + this.buildPrice, function() {});
     this.upgradeButton = new ShaftButton(this.x + this.w * 20 / 19, this.y + this.h / 4, this.w / 4, this.h / 2);
 };
 Shaft.prototype.draw = function (color) {
@@ -180,13 +178,14 @@ Shaft.prototype.draw = function (color) {
     this.upgradePrice = (this.id * this.level) * this.upgradeInc;
     
     if (!this.built) {
-        this.buildButton.draw();
-        if (clicked) {
-            if (tm > this.buildPrice) {
+        this.buildButton.y = this.y + this.h / 4;
+        this.buildButton.func = function () {
+            if (clicked && tm > this.buildPrice) {
                 tm -= this.buildPrice;
                 this.built = true;
             }
-        }
+        };
+        this.buildButton.draw();
     } 
     else {
         this.upgradeButton.draw();
@@ -221,6 +220,11 @@ Shaft.prototype.draw = function (color) {
     }
 };
 
+var shafts = [];
+for (var i = 0; i < 20; i++) {
+    shafts.push(new Shaft(i * 200 + 250, 300, 150, i + 1, 100, 100));
+}
+
 //}
 
 /** Ground and castle **/
@@ -230,8 +234,6 @@ var Ground = function (y, shafts) {
     this.y = y;
     this.shafts = shafts;
     this.a = 0;
-    this.mr = 0;
-    this.night = 0;
     this.r1 = 255; 
     this.g1 = 89;
     this.b1 = 89;
@@ -302,9 +304,6 @@ Ground.prototype.draw = function () {
         if (this.b2 < 105) {
             this.b2++;
         }
-        if (this.night < 100) {
-            this.night++;
-        }
     } 
     else if (this.a > 160 && this.a < 200) {
         if (this.r1 < 255) {
@@ -324,9 +323,6 @@ Ground.prototype.draw = function () {
         }
         if (this.b2 > 74) {
             this.b2--;
-        }
-        if (this.night > 0) {
-            this.night--;
         }
     }
     else if (this.a > 200 && this.a < 340) {
@@ -349,14 +345,14 @@ Ground.prototype.draw = function () {
             this.b2++;
         }
     }
-    this.gradient(0, 0, 400, 300, color(this.r1, this.g1, this.b1), color(this.r2, this.g2, this.b2));
+    this.gradient(0, this.y, 400, 300, color(this.r1, this.g1, this.b1), color(this.r2, this.g2, this.b2));
     
     //}
     
     //Sun {
     
     pushMatrix();
-        translate(200, 300);
+        translate(200, this.y + 300);
         rotate(this.a);
         for(var i = 0; i < 50; i++) {
             fill(255, 255, 140, i);
@@ -369,11 +365,8 @@ Ground.prototype.draw = function () {
     //Moon {
     
     pushMatrix();
-        translate(200, 300);
+        translate(200, this.y + 300);
         rotate(this.a);
-        translate(-200, 0);
-        rotate(this.mr);
-        translate(200, 0);
         for(var i = 0; i < 50; i++) {
             fill(255, 255, 255, i);
             ellipse(-200, 0, -i + 75, -i + 75);
@@ -387,128 +380,110 @@ Ground.prototype.draw = function () {
     //Grass, dirt, and main castle body {
     
     fill(16, 161, 0);
-    rect(0, this.y - 15, width, 70);
+    rect(0, this.y + 285, width, 70);
     
     fill(196, 196, 196);
-    rect(50, this.y - 100, 300, 100);
+    rect(50, this.y + 200, 300, 100);
     
     fill(150, 150, 150);
-    quad(350, this.y - 100, 350, this.y, 370, this.y - 10, 370, this.y - 80);
+    quad(350, this.y + 200, 350, this.y + 300, 370, this.y + 290, 370, this.y + 220);
     
-    this.grass(380, this.y - 10, 0.7);
-    this.grass(120, this.y - 7, 1);
-    this.grass(50, this.y + 10, 1.2);
-    this.grass(250, this.y + 10, 1.3);
-    this.grass(340, this.y + 20, 1.5);
-    this.grass(200, this.y + 25, 1.7);
+    this.grass(380, this.y + 290, 0.7);
+    this.grass(120, this.y + 293, 1);
+    this.grass(50, this.y + 310, 1.2);
+    this.grass(250, this.y + 310, 1.3);
+    this.grass(340, this.y + 320, 1.5);
+    this.grass(200, this.y + 325, 1.7);
     
     fill(133, 111, 0);
-    rect(0, this.y + 55, width, 50);
+    rect(0, this.y + 355, width, this.shafts.length * this.shafts[0].h);
     
     //}
     
     //Castle ramparts {
     
     for (var i = 0; i < 7; i++) {
-        if (i === 0 || i === 1) {
-            fill(135);
-        } 
-        else {
-            fill(181);
-        }
-        rect(i * 30.8 + 100, this.y - 115, 15, 15);
-        
-        if (i === 0 || i === 1) {
-            fill(97);
-        } 
-        else {
-            fill(161);
-        }
-        triangle(i * 30.8 + 100, this.y - 100, i * 30.8 + 115, this.y - 100, i * 30.8 + 115, this.y - 115);
-        
-        if (i === 0 || i === 1) {
-            fill(64);
-        } 
-        else {
-            fill(105);
-        }
-        quad(i * 30.8 + 115, this.y - 115, i * 30.8 + 115, this.y - 100, i * 30.8 + 120, this.y - 100, i * 30.8 + 120, this.y - 110);
+        fill((i === 0 || i === 1) ? 135 : 181);
+        rect(i * 30.8 + 100, this.y + 185, 15, 15);
+        fill((i === 0 || i === 1) ? 97 : 161);
+        triangle(i * 30.8 + 100, this.y + 200, i * 30.8 + 115, this.y + 200, i * 30.8 + 115, this.y + 185);
+        fill((i === 0 || i === 1) ? 75 : 105);
+        quad(i * 30.8 + 115, this.y + 185, i * 30.8 + 115, this.y + 200, i * 30.8 + 120, this.y + 200, i * 30.8 + 120, this.y + 190);
     }
     
     fill(160);
-    rect(60, this.y - 130, 40, 30);
-    rect(300, this.y - 130, 40, 30);
+    rect(60, this.y + 170, 40, 30);
+    rect(300, this.y + 170, 40, 30);
     
     fill(140);
-    rect(70, this.y - 130, 30, 30);
-    rect(310, this.y - 130, 30, 30);
+    rect(70, this.y + 170, 30, 30);
+    rect(310, this.y + 170, 30, 30);
     
     fill(120);
-    triangle(80, this.y - 130, 100, this.y - 130, 100, this.y - 120);
-    triangle(320, this.y - 130, 340, this.y - 130, 340, this.y - 120);
-    rect(90, this.y - 130, 10, 30);
-    rect(330, this.y - 130, 10, 30);
+    triangle(80, this.y + 170, 100, this.y + 170, 100, this.y + 180);
+    triangle(320, this.y + 170, 340, this.y + 170, 340, this.y + 180);
+    rect(90, this.y + 170, 10, 30);
+    rect(330, this.y + 170, 10, 30);
     
     //}
     
     //Castle bricks {
     
     fill(120, 119, 114);
-    rect(63, this.y - 50, 20, 10, 5);
-    rect(115, this.y - 90, 20, 10, 5);
-    rect(247, this.y - 60, 20, 10, 5);
-    rect(290, this.y - 20, 20, 10, 5);
-    rect(107, this.y - 25, 20, 10, 5); 
-    rect(302, this.y - 85, 20, 10, 5);
+    rect(63, this.y + 250, 20, 10, 5);
+    rect(115, this.y + 210, 20, 10, 5);
+    rect(247, this.y + 240, 20, 10, 5);
+    rect(290, this.y + 280, 20, 10, 5);
+    rect(107, this.y + 275, 20, 10, 5); 
+    rect(302, this.y + 215, 20, 10, 5);
     
     fill(156, 155, 145);
-    rect(61, this.y - 50, 20, 10, 5);
-    rect(113, this.y - 90, 20, 10, 5);
-    rect(245, this.y - 60, 20, 10, 5);
-    rect(288, this.y - 20, 20, 10, 5);
-    rect(105, this.y - 25, 20, 10, 5);
-    rect(300, this.y - 85, 20, 10, 5);
+    rect(61, this.y + 250, 20, 10, 5);
+    rect(113, this.y + 210, 20, 10, 5);
+    rect(245, this.y + 240, 20, 10, 5);
+    rect(288, this.y + 280, 20, 10, 5);
+    rect(105, this.y + 275, 20, 10, 5);
+    rect(300, this.y + 215, 20, 10, 5);
     
     //}
     
     //Castle gate {
     
     fill(120, 120, 120);
-    rect(155, this.y - 75, 10, 75);
+    rect(155, this.y + 225, 10, 75);
     fill(150, 150, 150);
-    quad(155, this.y, 160, this.y - 3, 235, this.y - 3, 235, this.y);
+    quad(155, this.y + 300, 166, this.y + 297, 235, this.y + 297, 235, this.y + 300);
     fill(59, 59, 59);
-    quad(155, this.y - 75, 160, this.y - 72, 235, this.y - 72, 235, this.y - 75);
+    quad(155, this.y + 225, 160, this.y + 228, 235, this.y + 228, 235, this.y + 225);
     fill(107, 78, 39);
-    rect(160, this.y - 72, 75, 69);
+    rect(160, this.y + 228, 75, 69);
     strokeCap(SQUARE);
     stroke(0);
-    line(197.5, this.y - 72, 197.5, this.y - 4);
+    line(197.5, this.y + 228, 197.5, this.y + 296);
     for(var i = 0; i < 4; i++) {
         noStroke();
         fill(115, 88, 52);
-        rect(158, i * 20 + this.y - 70, 77, 5);
+        rect(158, i * 20 + this.y + 230, 77, 5);
         stroke(0);
-        line(195, i * 20 + this.y - 70, 195, i * 20 + this.y - 65);
+        line(195, i * 20 + this.y + 230, 195, i * 20 + this.y + 235);
     }
     noStroke();
     fill(82, 55, 16);
-    quad(158, this.y - 65, 160, this.y - 62, 235, this.y - 62, 235, this.y - 65);
-    quad(158, this.y - 45, 160, this.y - 43, 235, this.y - 43, 235, this.y - 45);
-    quad(158, this.y - 30, 160, this.y - 32, 235, this.y - 32, 235, this.y - 30);
-    quad(158, this.y - 10, 160, this.y - 13, 235, this.y - 13, 235, this.y - 10);
+    quad(158, this.y + 235, 160, this.y + 238, 235, this.y + 238, 235, this.y + 235);
+    quad(158, this.y + 255, 160, this.y + 257, 235, this.y + 257, 235, this.y + 255);
+    quad(158, this.y + 270, 160, this.y + 268, 235, this.y + 268, 235, this.y + 270);
+    quad(158, this.y + 290, 160, this.y + 287, 235, this.y + 287, 235, this.y + 290);
     stroke(0);
-    line(195, this.y - 65, 197.5, this.y - 62);
-    line(195, this.y - 45, 197.5, this.y - 43);
-    line(195, this.y - 30, 197.5, this.y - 32);
-    line(195, this.y - 10, 197.5, this.y - 13);
+    line(195, this.y + 235, 197.5, this.y + 238);
+    line(195, this.y + 255, 197.5, this.y + 257);
+    line(195, this.y + 270, 197.5, this.y + 268);
+    line(195, this.y + 290, 197.5, this.y + 287);
     
     //}
     
     //Animation {
     
     this.a += 0.05;
-    this.mr -= 0.05;
     if (this.a > 360) {
         this.a = 0;
     }
@@ -516,29 +491,61 @@ Ground.prototype.draw = function () {
     //}
     
 };
-var g = new Ground(300);
 
 //}
 
 /** Mine **/
 // {
 
-var Mine = function (y) {
+var Mine = function (y, shafts) {
     this.y = y;
-    
+    this.shafts = shafts;
+    this.ground = new Ground(this.y, this.shafts);
 };
+Mine.prototype.updateChildPositions = function () {
+    //Update the ground
+    this.ground.y = this.y;
+    
+    //Update the shafts
+    for (var i = 0; i < this.shafts.length; i++) {
+        //this.shafts[i].y = this.shafts.id * 200 + this.y + 300;
+    }
+};
+Mine.prototype.move = function () {
+    // if (mouseY > 325) {
+    //     this.y += 5;
+    // }
+    // if (mouseY < 75) {
+    //     this.y -= 5;
+    // }
+    if (keys[UP]) {
+        this.y += 5;
+    }
+    if (keys[DOWN]) {
+        this.y -= 5;
+    }
+};
+Mine.prototype.draw = function () {
+    this.ground.draw();
+    for (var i = 0; i < this.shafts.length; i++) {
+        this.shafts[i].draw();
+    }
+};
+
+var mine = new Mine(0, shafts);
 
 //}
 
 /** Draw function **/
 // {
 
-var s = new Shaft(100, 300, 150, 1, 100, 10);
-
 draw = function () {
     
-    g.draw();
-    //s.draw();
+    background(255);
+    
+    mine.updateChildPositions();
+    mine.move();
+    mine.draw();
     
     clicked = false;
 };
